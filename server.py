@@ -27,7 +27,7 @@ def ipToBinaryString(ip):
     decimals = map(int, ip.split('/')[0].split('.'))
     binary = '{0:08b}{1:08b}{2:08b}{3:08b}'.format(*decimals)
     range = int(ip.split('/')[1]) if '/' in ip else None
-    return binary[:range] if range else binary
+    return binary[:range] if range != None else binary
 
 class Route:
 	def __init__(self, router, ip, cost):
@@ -82,13 +82,12 @@ class PrefixTree:
 		return route
 
 	def lookupRouteHelper(self, binaryString, index, node, bestRouteSoFar):
-		if(index == len(binaryString)):
-			# This code is never hit/tested
-			return bestRouteSoFar
-
 		if(node.route != None):
 			if(node.route.cost <= bestRouteSoFar.cost):
 				bestRouteSoFar = node.route
+
+		if(index == len(binaryString)):
+			return bestRouteSoFar
 
 		bin = binaryString[index]
 
