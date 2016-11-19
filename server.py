@@ -1,12 +1,11 @@
 # server.py
 # EID: dp24559
 
+# This server emulates the behavior of a routing table. Updates are sent, parsed and the server builds a prefix tree then stores the routes and 
+# their costs. Queries can also be sent and the server looks up the ip address in the prefix tree and determines the best matching route.
+
 from socket import *
 import sys
-import re
-from datetime import datetime
-import time
-import os
 
 serverPort = 0
 
@@ -23,11 +22,10 @@ serverName = "localhost"
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(("", serverPort))
 serverSocket.listen(10)
-print("Connection opened.")
 
-def ip2bin(ip):
-    octets = map(int, ip.split('/')[0].split('.'))
-    binary = '{0:08b}{1:08b}{2:08b}{3:08b}'.format(*octets)
+def ipToBinaryString(ip):
+    decimals = map(int, ip.split('/')[0].split('.'))
+    binary = '{0:08b}{1:08b}{2:08b}{3:08b}'.format(*decimals)
     range = int(ip.split('/')[1]) if '/' in ip else None
     return binary[:range] if range else binary
 
@@ -48,6 +46,7 @@ class PrefixTreeNode:
 		self.route = route
 
 class PrefixTree:
+	# Default entry is a catch-all route with cost 100
 	root = PrefixTreeNode(None, None, Route('A', '0.0.0.0/0', 100))
 
 	def addRouteHelper(self, binaryString, index, route, node):
@@ -55,6 +54,7 @@ class PrefixTree:
 			if(node.route == None):
 				node.route = route
 
+			# Update cost if it is smaller or if equal (most recent in a tie)
 			elif(node.route.cost >= route.cost):
 				node.route = route
 
@@ -75,7 +75,7 @@ class PrefixTree:
 			self.addRouteHelper(binaryString, index + 1, route, node.one)
 
 	def addRoute(self, route):
-		binaryString = ip2bin(route.cidr)
+		binaryString = ipToBinaryString(route.cidr)
 
 		self.addRouteHelper(binaryString, 0, route, self.root)
 
@@ -83,6 +83,7 @@ class PrefixTree:
 
 	def lookupRouteHelper(self, binaryString, index, node, bestRouteSoFar):
 		if(index == len(binaryString)):
+			# This code is never hit/tested
 			return bestRouteSoFar
 
 		if(node.route != None):
@@ -107,7 +108,7 @@ class PrefixTree:
 
 
 	def lookupRoute(self, ipAddress):
-		binaryString = ip2bin(ipAddress)
+		binaryString = ipToBinaryString(ipAddress)
 
 		return self.lookupRouteHelper(binaryString, 0, self.root, self.root.route)
 
